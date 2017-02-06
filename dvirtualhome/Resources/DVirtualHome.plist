@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Enable/Disable the tweak.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.dgh0st.dvirtualhome</string>
+			<key>key</key>
+			<string>isEnabled</string>
+			<key>label</key>
+			<string>Enable</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.dvirtualhome/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Gestures</string>
+			<key>footerText</key>
+			<string>Select actions for different gestures.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>singleTapAction</string>
+			<key>label</key>
+			<string>Single Tap Action</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>validTitles</key>
+				<array>
+					<string>Home Button</string>
+					<string>Lock Button</string>
+					<string>Switcher</string>
+					<string>Reachability</string>
+					<string>Siri</string>
+					<string>Nothing</string>
+				</array>
+			<key>validValues</key>
+				<array>
+					<integer>0</integer>
+					<integer>1</integer>
+					<integer>2</integer>
+					<integer>3</integer>
+					<integer>4</integer>
+					<integer>5</integer>
+				</array>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.dgh0st.dvirtualhome</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.dvirtualhome/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>doubleTapAction</string>
+			<key>label</key>
+			<string>Double Tap Action</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>validTitles</key>
+				<array>
+					<string>Home Button</string>
+					<string>Lock Button</string>
+					<string>Switcher</string>
+					<string>Reachability</string>
+					<string>Siri</string>
+					<string>Nothing</string>
+				</array>
+			<key>validValues</key>
+				<array>
+					<integer>0</integer>
+					<integer>1</integer>
+					<integer>2</integer>
+					<integer>3</integer>
+					<integer>4</integer>
+					<integer>5</integer>
+				</array>
+			<key>default</key>
+			<integer>2</integer>
+			<key>defaults</key>
+			<string>com.dgh0st.dvirtualhome</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.dvirtualhome/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>longHoldAction</string>
+			<key>label</key>
+			<string>Long Hold Action</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>validTitles</key>
+				<array>
+					<string>Home Button</string>
+					<string>Lock Button</string>
+					<string>Switcher</string>
+					<string>Reachability</string>
+					<string>Siri</string>
+					<string>Nothing</string>
+				</array>
+			<key>validValues</key>
+				<array>
+					<integer>0</integer>
+					<integer>1</integer>
+					<integer>2</integer>
+					<integer>3</integer>
+					<integer>4</integer>
+					<integer>5</integer>
+				</array>
+			<key>default</key>
+			<integer>3</integer>
+			<key>defaults</key>
+			<string>com.dgh0st.dvirtualhome</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.dvirtualhome/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>tapAndHoldAction</string>
+			<key>label</key>
+			<string>Tap And Hold Action</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>validTitles</key>
+				<array>
+					<string>Home Button</string>
+					<string>Lock Button</string>
+					<string>Switcher</string>
+					<string>Reachability</string>
+					<string>Siri</string>
+					<string>Nothing</string>
+				</array>
+			<key>validValues</key>
+				<array>
+					<integer>0</integer>
+					<integer>1</integer>
+					<integer>2</integer>
+					<integer>3</integer>
+					<integer>4</integer>
+					<integer>5</integer>
+				</array>
+			<key>default</key>
+			<integer>5</integer>
+			<key>defaults</key>
+			<string>com.dgh0st.dvirtualhome</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.dvirtualhome/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Vibration Settings</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.dgh0st.dvirtualhome</string>
+			<key>key</key>
+			<string>isVibrationEnabled</string>
+			<key>label</key>
+			<string>Enable Vibration</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.dvirtualhome/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Vibration Duration</string>
+			<key>footerText</key>
+			<string>Set the duration for the vibration.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<integer>30</integer>
+			<key>defaults</key>
+			<string>com.dgh0st.dvirtualhome</string>
+			<key>key</key>
+			<string>vibrationDuration</string>
+			<key>min</key>
+			<integer>20</integer>
+			<key>max</key>
+			<integer>100</integer>
+			<key>showValue</key>
+			<true/>
+			<key>PostNotification</key>
+			<string>com.dgh0st.dvirtualhome/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Vibration Intensity</string>
+			<key>footerText</key>
+			<string>Set the intensity of the vibration.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<real>0.75</real>
+			<key>defaults</key>
+			<string>com.dgh0st.dvirtualhome</string>
+			<key>key</key>
+			<string>vibrationIntensity</string>
+			<key>min</key>
+			<real>0.2</real>
+			<key>max</key>
+			<real>1.0</real>
+			<key>showValue</key>
+			<true/>
+			<key>PostNotification</key>
+			<string>com.dgh0st.dvirtualhome/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Credits</string>
+			<key>footerText</key>
+			<string>Enjoy the tweak :)</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>action</key>
+			<string>email</string>
+			<key>label</key>
+			<string>Email Support</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>action</key>
+			<string>donate</string>
+			<key>label</key>
+			<string>Donate</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>action</key>
+			<string>follow</string>
+			<key>label</key>
+			<string>Follow on twitter</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerAlignment</key>
+			<integer>1</integer>
+			<key>footerText</key>
+			<string>DVirtualHome © 2017 DGh0st</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>DVirtualHome</string>
+</dict>
+</plist>
