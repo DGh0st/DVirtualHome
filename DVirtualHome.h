@@ -54,7 +54,6 @@ static NSInteger vibrationDuration = 30;
 -(void)setAllowedPressTypes:(id)arg1;
 -(void)requireGestureRecognizerToFail:(id)arg1;
 -(void)setDelegate:(id)arg1;
--(void)_resetGestureRecognizer;
 @end
 
 @interface UIHBClickGestureRecognizer : UIGestureRecognizer

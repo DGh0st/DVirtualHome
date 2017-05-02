@@ -32,7 +32,7 @@
 }
 
 -(void)donate{
-	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=deeppwnage%40yahoo%2ecom&lc=US&item_name=DGh0st&item_number=DGh0st%20Tweak%20Inc%20%28Wow%20I%20own%20a%20company%29&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHostedGuest"]];
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://paypal.me/DGh0st"]];
 }
 
 -(void)follow{

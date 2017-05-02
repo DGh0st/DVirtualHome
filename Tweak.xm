@@ -98,8 +98,12 @@ UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
 		[[%c(SBReachabilityManager) sharedInstance] toggleReachability];
 	} else if (action == siri) {
 		SBAssistantController *_assistantController = [%c(SBAssistantController) sharedInstance];
-		[_assistantController handleSiriButtonDownEventFromSource:1 activationEvent:1];
-		[_assistantController handleSiriButtonUpEventFromSource:1];
+		if ([%c(SBAssistantController) isAssistantVisible]) {
+			[_assistantController dismissPluginForEvent:1];
+		} else {
+			[_assistantController handleSiriButtonDownEventFromSource:1 activationEvent:1];
+			[_assistantController handleSiriButtonUpEventFromSource:1];
+		}
 	}
 }
 
