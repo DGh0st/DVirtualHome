@@ -9,6 +9,9 @@ typedef enum Action : NSInteger {
 	switcher,
 	reachability,
 	siri,
+	screenshot,
+	cc,
+	nc,
 	nothing
 } Action;
 
@@ -35,9 +38,14 @@ static NSInteger vibrationDuration = 30;
 -(void)toggleReachability;
 @end
 
+@interface SBScreenshotManager
+-(void)saveScreenshotsWithCompletion:(id)arg1;
+@end
+
 @interface SpringBoard : UIApplication
 -(void)_simulateHomeButtonPress;
 -(void)_simulateLockButtonPress;
+-(SBScreenshotManager *)screenshotManager;
 @end
 
 @interface SBAssistantController
@@ -46,6 +54,20 @@ static NSInteger vibrationDuration = 30;
 -(BOOL)handleSiriButtonDownEventFromSource:(NSInteger)arg1 activationEvent:(NSInteger)arg2;
 -(void)handleSiriButtonUpEventFromSource:(NSInteger)arg1;
 -(void)dismissPluginForEvent:(NSInteger)arg1;
+@end
+
+@interface SBControlCenterController
++(id)sharedInstance;
+-(BOOL)isVisible;
+-(void)dismissAnimated:(BOOL)arg1;
+-(void)presentAnimated:(BOOL)arg1;
+@end
+
+@interface SBNotificationCenterController
++(id)sharedInstance;
+-(BOOL)isVisible;
+-(void)dismissAnimated:(BOOL)arg1;
+-(void)presentAnimated:(BOOL)arg1;
 @end
 
 @interface UIGestureRecognizer (DVirtualHome)

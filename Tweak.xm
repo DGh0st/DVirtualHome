@@ -104,6 +104,22 @@ UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
 			[_assistantController handleSiriButtonDownEventFromSource:1 activationEvent:1];
 			[_assistantController handleSiriButtonUpEventFromSource:1];
 		}
+	} else if (action == screenshot) {
+		[[(SpringBoard *)[UIApplication sharedApplication] screenshotManager] saveScreenshotsWithCompletion:nil];
+	} else if (action == cc) {
+		SBControlCenterController *_ccController = [%c(SBControlCenterController) sharedInstance];
+		if ([_ccController isVisible]) {
+			[_ccController dismissAnimated:YES];
+		} else {
+			[_ccController presentAnimated:YES];
+		}
+	} else if (action == nc) {
+		SBNotificationCenterController *_ncController = [%c(SBNotificationCenterController) sharedInstance];
+		if ([_ncController isVisible]) {
+			[_ncController dismissAnimated:YES];
+		} else {
+			[_ncController presentAnimated:YES];
+		}
 	}
 }
 
