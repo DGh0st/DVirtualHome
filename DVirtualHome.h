@@ -28,9 +28,10 @@ static BOOL isVibrationEnabled = YES;
 static CGFloat vibrationIntensity = 0.75;
 static NSInteger vibrationDuration = 30; 
 
-@interface SBMainSwitcherViewController : NSObject
+@interface SBMainSwitcherViewController : UIViewController
 +(id)sharedInstance;
 -(BOOL)toggleSwitcherNoninteractively;
+-(_Bool)toggleSwitcherNoninteractivelyWithSource:(NSInteger)arg1;
 @end
 
 @interface SBReachabilityManager : NSObject
@@ -88,17 +89,13 @@ static NSInteger vibrationDuration = 30;
 
 @interface SBSystemGestureManager
 +(id)mainDisplayManager;
--(void)addGestureRecognizer:(id)arg1 withType:(NSInteger)arg2 ;
 -(id)display;
 @end
 
 @interface SBHomeHardwareButtonGestureRecognizerConfiguration
--(void)setSingleTapGestureRecognizer:(id)arg1;
--(id)singleTapGestureRecognizer;
--(void)setLongTapGestureRecognizer:(id)arg1;
--(id)longTapGestureRecognizer;
--(void)setTapAndHoldTapGestureRecognizer:(id)arg1;
--(id)tapAndHoldTapGestureRecognizer;
+@property(retain,nonatomic) UIHBClickGestureRecognizer *singleTapGestureRecognizer;
+@property(retain,nonatomic) UILongPressGestureRecognizer *longTapGestureRecognizer;
+@property(retain,nonatomic) UILongPressGestureRecognizer *tapAndHoldTapGestureRecognizer;
 -(id)doubleTapUpGestureRecognizer;
 -(SBSystemGestureManager *)systemGestureManager;
 @end
@@ -114,7 +111,8 @@ static NSInteger vibrationDuration = 30;
 -(void)resetGestures:(id)arg1;
 @end
 
-@interface FBSystemGestureManager
+@interface FBSystemGestureManager : NSObject
 +(id)sharedInstance;
 -(void)addGestureRecognizer:(id)arg1 toDisplay:(id)arg2;
+-(void)addGestureRecognizer:(id)arg1 toDisplayWithIdentity:(id)arg2;
 @end

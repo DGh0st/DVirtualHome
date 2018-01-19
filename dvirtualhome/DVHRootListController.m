@@ -32,7 +32,7 @@
 }
 
 -(void)donate{
-	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://paypal.me/DGh0st"]];
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://paypal.me/DGhost"]];
 }
 
 -(void)follow{

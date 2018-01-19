@@ -50,39 +50,9 @@ static void hapticVibe() {
 %end
 
 %hook SBHomeHardwareButtonGestureRecognizerConfiguration
-UIHBClickGestureRecognizer *_singleTapGestureRecognizer = nil;
-UILongPressGestureRecognizer *_longTapGestureRecognizer = nil;
-UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
-
-%new
--(void)setSingleTapGestureRecognizer:(id)arg1 {
-	_singleTapGestureRecognizer = arg1;
-}
-
-%new
--(id)singleTapGestureRecognizer {
-	return _singleTapGestureRecognizer;
-}
-
-%new
--(void)setLongTapGestureRecognizer:(id)arg1 {
-	_longTapGestureRecognizer = arg1;
-}
-
-%new
--(id)longTapGestureRecognizer {
-	return _longTapGestureRecognizer;
-}
-
-%new
--(void)setTapAndHoldTapGestureRecognizer:(id)arg1 {
-	_tapAndHoldTapGestureRecognizer = arg1;
-}
-
-%new
--(id)tapAndHoldTapGestureRecognizer {
-	return _tapAndHoldTapGestureRecognizer;
-}
+%property(retain,nonatomic) UIHBClickGestureRecognizer *singleTapGestureRecognizer;
+%property(retain,nonatomic) UILongPressGestureRecognizer *longTapGestureRecognizer;
+%property(retain,nonatomic) UILongPressGestureRecognizer *tapAndHoldTapGestureRecognizer;
 %end
 
 %hook SBHomeHardwareButton
@@ -93,7 +63,11 @@ UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
 	} else if (action == lock) {
 		[(SpringBoard *)[UIApplication sharedApplication] _simulateLockButtonPress];
 	} else if (action == switcher) {
-		[[%c(SBMainSwitcherViewController) sharedInstance] toggleSwitcherNoninteractively];
+		SBMainSwitcherViewController *mainSwitcherViewController = [%c(SBMainSwitcherViewController) sharedInstance];
+		if ([mainSwitcherViewController respondsToSelector:@selector(toggleSwitcherNoninteractively)])
+			[mainSwitcherViewController toggleSwitcherNoninteractively];
+		else if ([mainSwitcherViewController respondsToSelector:@selector(toggleSwitcherNoninteractivelyWithSource:)])
+			[mainSwitcherViewController toggleSwitcherNoninteractivelyWithSource:1];
 	} else if (action == reachability) {
 		[[%c(SBReachabilityManager) sharedInstance] toggleReachability];
 	} else if (action == siri) {
@@ -114,11 +88,13 @@ UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
 			[_ccController presentAnimated:YES];
 		}
 	} else if (action == nc) {
-		SBNotificationCenterController *_ncController = [%c(SBNotificationCenterController) sharedInstance];
-		if ([_ncController isVisible]) {
-			[_ncController dismissAnimated:YES];
-		} else {
-			[_ncController presentAnimated:YES];
+		if (%c(SBNotificationCenterController)) {
+			SBNotificationCenterController *_ncController = [%c(SBNotificationCenterController) sharedInstance];
+			if ([_ncController isVisible]) {
+				[_ncController dismissAnimated:YES];
+			} else {
+				[_ncController presentAnimated:YES];
+			}
 		}
 	}
 }
@@ -153,10 +129,10 @@ UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
 }
 
 %new
--(void)createSingleTapGestureRecognizerWithConfiguration:(id)arg1 {
+-(void)createSingleTapGestureRecognizerWithConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [arg1 doubleTapUpGestureRecognizer];
-	UILongPressGestureRecognizer *_longTapGestureRecognizer = [arg1 longTapGestureRecognizer];
-	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = [arg1 tapAndHoldTapGestureRecognizer];
+	UILongPressGestureRecognizer *_longTapGestureRecognizer = arg1.longTapGestureRecognizer;
+	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = arg1.tapAndHoldTapGestureRecognizer;
 	SBSystemGestureManager *_systemGestureManager = [arg1 systemGestureManager];
 
 	SBHBDoubleTapUpGestureRecognizer *_singleTapGestureRecognizer = [[%c(SBHBDoubleTapUpGestureRecognizer) alloc] initWithTarget:self action:@selector(singleTapUp:)];
@@ -167,15 +143,19 @@ UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
 	[_singleTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
 	[_singleTapGestureRecognizer setClickCount:1];
 
-	[[%c(FBSystemGestureManager) sharedInstance] addGestureRecognizer:_singleTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
+	if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
+		[_fbSystemGestureManager addGestureRecognizer:_singleTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
+		[_fbSystemGestureManager addGestureRecognizer:_singleTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
 
-	[arg1 setSingleTapGestureRecognizer:_singleTapGestureRecognizer];
+	arg1.singleTapGestureRecognizer = _singleTapGestureRecognizer;
 }
 
 %new
--(void)createLongTapGestureRecognizerWithConfiguration:(id)arg1 {
+-(void)createLongTapGestureRecognizerWithConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [arg1 doubleTapUpGestureRecognizer];
-	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = [arg1 tapAndHoldTapGestureRecognizer];
+	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = arg1.tapAndHoldTapGestureRecognizer;
 	SBSystemGestureManager *_systemGestureManager = [arg1 systemGestureManager];
 
 	UILongPressGestureRecognizer *_longTapGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(longTap:)];
@@ -185,13 +165,17 @@ UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
 	[_longTapGestureRecognizer setMinimumPressDuration:0.4];
 	[_longTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
 
-	[[%c(FBSystemGestureManager) sharedInstance] addGestureRecognizer:_longTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
+	if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
+		[_fbSystemGestureManager addGestureRecognizer:_longTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
+		[_fbSystemGestureManager addGestureRecognizer:_longTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
 
-	[arg1 setLongTapGestureRecognizer:_longTapGestureRecognizer];
+	arg1.longTapGestureRecognizer = _longTapGestureRecognizer;
 }
 
 %new
--(void)createTapAndHoldGestureRecognizerWithConfiguration:(id)arg1 {
+-(void)createTapAndHoldGestureRecognizerWithConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [arg1 doubleTapUpGestureRecognizer];
 	SBSystemGestureManager *_systemGestureManager = [arg1 systemGestureManager];
 
@@ -201,9 +185,13 @@ UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
 	[_tapAndHoldTapGestureRecognizer setMinimumPressDuration:0.4];
 	[_tapAndHoldTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
 
-	[[%c(FBSystemGestureManager) sharedInstance] addGestureRecognizer:_tapAndHoldTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
+	if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
+		[_fbSystemGestureManager addGestureRecognizer:_tapAndHoldTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
+		[_fbSystemGestureManager addGestureRecognizer:_tapAndHoldTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
 
-	[arg1 setTapAndHoldTapGestureRecognizer:_tapAndHoldTapGestureRecognizer];
+	arg1.tapAndHoldTapGestureRecognizer = _tapAndHoldTapGestureRecognizer;
 }
 
 -(void)_createGestureRecognizersWithConfiguration:(id)arg1 {
@@ -216,24 +204,24 @@ UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = nil;
 
 -(void)setGestureRecognizerConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	%orig(arg1);
-	if (![arg1 tapAndHoldTapGestureRecognizer]) {
+	if (!arg1.tapAndHoldTapGestureRecognizer) {
 		[self createTapAndHoldGestureRecognizerWithConfiguration:arg1];
 	}
-	if (![arg1 longTapGestureRecognizer]) {
+	if (!arg1.longTapGestureRecognizer) {
 		[self createLongTapGestureRecognizerWithConfiguration:arg1];
 	}
-	if (![arg1 singleTapGestureRecognizer]) {
+	if (!arg1.singleTapGestureRecognizer) {
 		[self createSingleTapGestureRecognizerWithConfiguration:arg1];
 	}
 }
 
 -(BOOL)gestureRecognizer:(id)arg1 shouldRecognizeSimultaneouslyWithGestureRecognizer:(id)arg2 {
 	SBHomeHardwareButtonGestureRecognizerConfiguration *_configuration = [self gestureRecognizerConfiguration];
-	SBHBDoubleTapUpGestureRecognizer *_singleTapGestureRecognizer = [_configuration singleTapGestureRecognizer];
-	UILongPressGestureRecognizer *_longTapGestureRecognizer = [_configuration longTapGestureRecognizer];
+	UIHBClickGestureRecognizer *_singleTapGestureRecognizer = _configuration.singleTapGestureRecognizer;
+	UILongPressGestureRecognizer *_longTapGestureRecognizer = _configuration.longTapGestureRecognizer;
 
 	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [_configuration doubleTapUpGestureRecognizer];
-	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = [_configuration tapAndHoldTapGestureRecognizer];
+	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = _configuration.tapAndHoldTapGestureRecognizer;
 
 	if ((arg1 == _singleTapGestureRecognizer && arg2 == _longTapGestureRecognizer) || (arg1 == _longTapGestureRecognizer && arg2 == _singleTapGestureRecognizer)) {
 		return YES;
