@@ -31,7 +31,7 @@ static NSInteger vibrationDuration = 30;
 @interface SBMainSwitcherViewController : UIViewController
 +(id)sharedInstance;
 -(BOOL)toggleSwitcherNoninteractively;
--(_Bool)toggleSwitcherNoninteractivelyWithSource:(NSInteger)arg1;
+-(BOOL)toggleSwitcherNoninteractivelyWithSource:(NSInteger)arg1;
 @end
 
 @interface SBReachabilityManager : NSObject
@@ -47,6 +47,7 @@ static NSInteger vibrationDuration = 30;
 -(void)_simulateHomeButtonPress;
 -(void)_simulateLockButtonPress;
 -(SBScreenshotManager *)screenshotManager;
+-(void)takeScreenshot;
 @end
 
 @interface SBAssistantController
@@ -69,6 +70,19 @@ static NSInteger vibrationDuration = 30;
 -(BOOL)isVisible;
 -(void)dismissAnimated:(BOOL)arg1;
 -(void)presentAnimated:(BOOL)arg1;
+@end
+
+@interface SBCoverSheetSlidingViewController
+-(void)_dismissCoverSheetAnimated:(BOOL)arg1 withCompletion:(id)arg2;
+-(void)_presentCoverSheetAnimated:(BOOL)arg1 withCompletion:(id)arg2;
+@end
+
+@interface SBCoverSheetPresentationManager
+@property(retain, nonatomic) SBCoverSheetSlidingViewController *coverSheetSlidingViewController;
+@property(retain, nonatomic) SBCoverSheetSlidingViewController *secureAppSlidingViewController;
++(id)sharedInstance;
+-(BOOL)isVisible;
+-(BOOL)isInSecureApp;
 @end
 
 @interface UIGestureRecognizer (DVirtualHome)

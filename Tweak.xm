@@ -79,21 +79,42 @@ static void hapticVibe() {
 			[_assistantController handleSiriButtonUpEventFromSource:1];
 		}
 	} else if (action == screenshot) {
-		[[(SpringBoard *)[UIApplication sharedApplication] screenshotManager] saveScreenshotsWithCompletion:nil];
+		SpringBoard *_springboard = (SpringBoard *)[UIApplication sharedApplication];
+		if ([_springboard respondsToSelector:@selector(takeScreenshot)])
+			[_springboard takeScreenshot];
+		else
+			[[_springboard screenshotManager] saveScreenshotsWithCompletion:nil];
 	} else if (action == cc) {
 		SBControlCenterController *_ccController = [%c(SBControlCenterController) sharedInstance];
-		if ([_ccController isVisible]) {
+		if ([_ccController isVisible])
 			[_ccController dismissAnimated:YES];
-		} else {
+		else
 			[_ccController presentAnimated:YES];
-		}
 	} else if (action == nc) {
-		if (%c(SBNotificationCenterController)) {
+		// the following still seems to crash on iOS 11 (need to figure out correct way of invoking the new NC)
+		if (%c(SBCoverSheetPresentationManager) && [%c(SBCoverSheetPresentationManager) respondsToSelector:@selector(sharedInstance)]) {
+			SBCoverSheetPresentationManager *_csController = [%c(SBCoverSheetPresentationManager) sharedInstance];
+			if (_csController != nil) {
+				SBCoverSheetSlidingViewController *currentSlidingViewController = nil;
+				if ([_csController isInSecureApp] && _csController.secureAppSlidingViewController != nil)
+					currentSlidingViewController = _csController.secureAppSlidingViewController;
+				else if (_csController.coverSheetSlidingViewController != nil)
+					currentSlidingViewController = _csController.coverSheetSlidingViewController;
+
+				if (currentSlidingViewController != nil) {
+					if ([_csController isVisible])
+						[currentSlidingViewController _dismissCoverSheetAnimated:YES withCompletion:nil];
+					else
+						[currentSlidingViewController _presentCoverSheetAnimated:YES withCompletion:nil];
+				}
+			}
+		} else if (%c(SBNotificationCenterController) && [%c(SBNotificationCenterController) respondsToSelector:@selector(sharedInstance)]) {
 			SBNotificationCenterController *_ncController = [%c(SBNotificationCenterController) sharedInstance];
-			if ([_ncController isVisible]) {
-				[_ncController dismissAnimated:YES];
-			} else {
-				[_ncController presentAnimated:YES];
+			if (_ncController != nil) {
+				if ([_ncController isVisible])
+					[_ncController dismissAnimated:YES];
+				else
+					[_ncController presentAnimated:YES];
 			}
 		}
 	}
