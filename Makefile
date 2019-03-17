@@ -1,8 +1,6 @@
 export ARCHS = armv7 arm64
 export TARGET = iphone:clang:8.1:latest
 
-PACKAGE_VERSION = $(THEOS_PACKAGE_BASE_VERSION)-2
-
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = DVirtualHome

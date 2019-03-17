@@ -14,7 +14,7 @@ static void preferencesChanged() {
 			CFRelease(keyList);
 		}
 	} else {
-		prefs = [NSDictionary dictionaryWithContentsOfFile:kSettingsPath];
+		prefs = [[NSDictionary alloc] initWithContentsOfFile:kSettingsPath];
 	}
 
 	if (prefs) {
@@ -26,7 +26,10 @@ static void preferencesChanged() {
 		isVibrationEnabled =  [prefs objectForKey:@"isVibrationEnabled"] ? [[prefs objectForKey:@"isVibrationEnabled"] boolValue] : YES;
 		vibrationIntensity =  [prefs objectForKey:@"vibrationIntensity"] ? [[prefs objectForKey:@"vibrationIntensity"] floatValue] : 0.75;
 		vibrationDuration =  [prefs objectForKey:@"vibrationDuration"] ? [[prefs objectForKey:@"vibrationDuration"] intValue] : 30;
+		
 	}
+	[prefs release];
+
 }
 
 static void hapticVibe() {
@@ -152,14 +155,12 @@ static void hapticVibe() {
 %new
 -(void)createSingleTapGestureRecognizerWithConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [arg1 doubleTapUpGestureRecognizer];
-	UILongPressGestureRecognizer *_longTapGestureRecognizer = arg1.longTapGestureRecognizer;
-	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = arg1.tapAndHoldTapGestureRecognizer;
 	SBSystemGestureManager *_systemGestureManager = [arg1 systemGestureManager];
 
 	SBHBDoubleTapUpGestureRecognizer *_singleTapGestureRecognizer = [[%c(SBHBDoubleTapUpGestureRecognizer) alloc] initWithTarget:self action:@selector(singleTapUp:)];
 	[_singleTapGestureRecognizer setDelegate:self];
-	[_singleTapGestureRecognizer requireGestureRecognizerToFail:_longTapGestureRecognizer];
-	[_singleTapGestureRecognizer requireGestureRecognizerToFail:_tapAndHoldTapGestureRecognizer];
+	[_singleTapGestureRecognizer requireGestureRecognizerToFail:arg1.longTapGestureRecognizer];
+	[_singleTapGestureRecognizer requireGestureRecognizerToFail:arg1.tapAndHoldTapGestureRecognizer];
 	[_singleTapGestureRecognizer requireGestureRecognizerToFail:_doubleTapUpGestureRecognizer];
 	[_singleTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
 	[_singleTapGestureRecognizer setClickCount:1];
@@ -170,18 +171,19 @@ static void hapticVibe() {
 	else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
 		[_fbSystemGestureManager addGestureRecognizer:_singleTapGestureRecognizer toDisplay:[_systemGestureManager display]];
 
+	if (arg1.singleTapGestureRecognizer != nil)
+		[arg1.singleTapGestureRecognizer release];
 	arg1.singleTapGestureRecognizer = _singleTapGestureRecognizer;
 }
 
 %new
 -(void)createLongTapGestureRecognizerWithConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [arg1 doubleTapUpGestureRecognizer];
-	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = arg1.tapAndHoldTapGestureRecognizer;
 	SBSystemGestureManager *_systemGestureManager = [arg1 systemGestureManager];
 
 	UILongPressGestureRecognizer *_longTapGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(longTap:)];
 	[_longTapGestureRecognizer setDelegate:self];
-	[_longTapGestureRecognizer requireGestureRecognizerToFail:_tapAndHoldTapGestureRecognizer];
+	[_longTapGestureRecognizer requireGestureRecognizerToFail:arg1.tapAndHoldTapGestureRecognizer];
 	[_longTapGestureRecognizer setNumberOfTapsRequired:0];
 	[_longTapGestureRecognizer setMinimumPressDuration:0.4];
 	[_longTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
@@ -192,6 +194,8 @@ static void hapticVibe() {
 	else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
 		[_fbSystemGestureManager addGestureRecognizer:_longTapGestureRecognizer toDisplay:[_systemGestureManager display]];
 
+	if (arg1.longTapGestureRecognizer != nil)
+		[arg1.longTapGestureRecognizer release];
 	arg1.longTapGestureRecognizer = _longTapGestureRecognizer;
 }
 
@@ -212,10 +216,12 @@ static void hapticVibe() {
 	else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
 		[_fbSystemGestureManager addGestureRecognizer:_tapAndHoldTapGestureRecognizer toDisplay:[_systemGestureManager display]];
 
+	if (arg1.tapAndHoldTapGestureRecognizer != nil)
+		[arg1.tapAndHoldTapGestureRecognizer release];
 	arg1.tapAndHoldTapGestureRecognizer = _tapAndHoldTapGestureRecognizer;
 }
 
--(void)_createGestureRecognizersWithConfiguration:(id)arg1 {
+-(void)_createGestureRecognizersWithConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	%orig(arg1);
 	[self createTapAndHoldGestureRecognizerWithConfiguration:arg1];
 	[self createLongTapGestureRecognizerWithConfiguration:arg1];
@@ -252,6 +258,22 @@ static void hapticVibe() {
 	return %orig(arg1, arg2);
 }
 %end
+
+%hook SBHomeHardwareButtonGestureRecognizerConfiguration
+-(void)dealloc {
+	[self.singleTapGestureRecognizer release];
+	self.singleTapGestureRecognizer = nil;
+	[self.longTapGestureRecognizer release];
+	self.longTapGestureRecognizer = nil;
+	[self.tapAndHoldTapGestureRecognizer release];
+	self.tapAndHoldTapGestureRecognizer = nil;
+	%orig;
+}
+%end
+
+%dtor {
+	CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kSettingsChangedNotification, NULL);
+}
 
 %ctor {
 	preferencesChanged();
