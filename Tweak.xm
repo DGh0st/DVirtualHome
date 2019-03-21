@@ -183,7 +183,6 @@ static void hapticVibe() {
 
 	UILongPressGestureRecognizer *_longTapGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(longTap:)];
 	[_longTapGestureRecognizer setDelegate:self];
-	[_longTapGestureRecognizer requireGestureRecognizerToFail:arg1.tapAndHoldTapGestureRecognizer];
 	[_longTapGestureRecognizer setNumberOfTapsRequired:0];
 	[_longTapGestureRecognizer setMinimumPressDuration:0.4];
 	[_longTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
