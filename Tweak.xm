@@ -26,7 +26,7 @@ static void preferencesChanged() {
 		isVibrationEnabled =  [prefs objectForKey:@"isVibrationEnabled"] ? [[prefs objectForKey:@"isVibrationEnabled"] boolValue] : YES;
 		vibrationIntensity =  [prefs objectForKey:@"vibrationIntensity"] ? [[prefs objectForKey:@"vibrationIntensity"] floatValue] : 0.75;
 		vibrationDuration =  [prefs objectForKey:@"vibrationDuration"] ? [[prefs objectForKey:@"vibrationDuration"] intValue] : 30;
-		
+		isAllowTapOnScreenOffEnabled = [prefs objectForKey:@"isAllowTapOnScreenOffEnabled"] ? [[prefs objectForKey:@"isAllowTapOnScreenOffEnabled"] boolValue] : NO;
 	}
 	[prefs release];
 
@@ -52,6 +52,36 @@ static void hapticVibe() {
 }
 %end
 
+void lockOrUnlockOrientation(UIInterfaceOrientation orientation) {
+	SBOrientationLockManager *orientationLockManager = [%c(SBOrientationLockManager) sharedInstance];
+	if ([orientationLockManager isUserLocked]) {
+		[orientationLockManager unlock];
+	} else {
+		[orientationLockManager lock:orientation];
+	}
+}
+
+static NSString *lastApplicationIdentifier = nil;
+static NSString *currentApplicationIdentifier = nil;
+
+// The last app feature was copied from LastApp (https://github.com/ashikase/LastApp/ and Tateu's fork)
+%hook SpringBoard
+%property (nonatomic, retain) NSString *lastApplicationIdentifier;
+%property (nonatomic, retain) NSString *currentApplicationIdentifier;
+
+-(void)frontDisplayDidChange:(id)arg1 {
+	%orig;
+
+	if (arg1 != nil && [arg1 isKindOfClass:%c(SBApplication)]) {
+		NSString *newBundleIdentifier = [(SBApplication *)arg1 bundleIdentifier];
+		if (![currentApplicationIdentifier isEqualToString:newBundleIdentifier]) {
+			lastApplicationIdentifier = currentApplicationIdentifier;
+			currentApplicationIdentifier = newBundleIdentifier;
+		}
+	}
+}
+%end
+
 %hook SBHomeHardwareButtonGestureRecognizerConfiguration
 %property(retain,nonatomic) UIHBClickGestureRecognizer *singleTapGestureRecognizer;
 %property(retain,nonatomic) UILongPressGestureRecognizer *longTapGestureRecognizer;
@@ -61,16 +91,19 @@ static void hapticVibe() {
 %hook SBHomeHardwareButton
 %new
 -(void)performAction:(Action)action {
-	if (action == home) {
+	if (action == home || ![[%c(SBBacklightController) sharedInstance] screenIsOn]) {
 		[(SpringBoard *)[UIApplication sharedApplication] _simulateHomeButtonPress];
 	} else if (action == lock) {
 		[(SpringBoard *)[UIApplication sharedApplication] _simulateLockButtonPress];
 	} else if (action == switcher) {
-		SBMainSwitcherViewController *mainSwitcherViewController = [%c(SBMainSwitcherViewController) sharedInstance];
-		if ([mainSwitcherViewController respondsToSelector:@selector(toggleSwitcherNoninteractively)])
-			[mainSwitcherViewController toggleSwitcherNoninteractively];
-		else if ([mainSwitcherViewController respondsToSelector:@selector(toggleSwitcherNoninteractivelyWithSource:)])
-			[mainSwitcherViewController toggleSwitcherNoninteractivelyWithSource:1];
+		id topDisplay = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay];
+		if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBDashBoardViewController)] && (%c(SBCoverSheetPresentationManager) == nil || [[%c(SBCoverSheetPresentationManager) sharedInstance] hasBeenDismissedSinceKeybagLock])) {
+			SBMainSwitcherViewController *mainSwitcherViewController = [%c(SBMainSwitcherViewController) sharedInstance];
+			if ([mainSwitcherViewController respondsToSelector:@selector(toggleSwitcherNoninteractively)])
+				[mainSwitcherViewController toggleSwitcherNoninteractively];
+			else if ([mainSwitcherViewController respondsToSelector:@selector(toggleSwitcherNoninteractivelyWithSource:)])
+				[mainSwitcherViewController toggleSwitcherNoninteractivelyWithSource:1];
+		}
 	} else if (action == reachability) {
 		[[%c(SBReachabilityManager) sharedInstance] toggleReachability];
 	} else if (action == siri) {
@@ -88,38 +121,64 @@ static void hapticVibe() {
 		else
 			[[_springboard screenshotManager] saveScreenshotsWithCompletion:nil];
 	} else if (action == cc) {
-		SBControlCenterController *_ccController = [%c(SBControlCenterController) sharedInstance];
-		if ([_ccController isVisible])
-			[_ccController dismissAnimated:YES];
-		else
-			[_ccController presentAnimated:YES];
+		if (![[(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay] isKindOfClass:%c(SBPowerDownController)]) {
+			SBControlCenterController *_ccController = [%c(SBControlCenterController) sharedInstance];
+			if ([_ccController isVisible])
+				[_ccController dismissAnimated:YES];
+			else
+				[_ccController presentAnimated:YES];
+		}
 	} else if (action == nc) {
-		// the following still seems to crash on iOS 11 (need to figure out correct way of invoking the new NC)
-		if (%c(SBCoverSheetPresentationManager) && [%c(SBCoverSheetPresentationManager) respondsToSelector:@selector(sharedInstance)]) {
-			SBCoverSheetPresentationManager *_csController = [%c(SBCoverSheetPresentationManager) sharedInstance];
-			if (_csController != nil) {
-				SBCoverSheetSlidingViewController *currentSlidingViewController = nil;
-				if ([_csController isInSecureApp] && _csController.secureAppSlidingViewController != nil)
-					currentSlidingViewController = _csController.secureAppSlidingViewController;
-				else if (_csController.coverSheetSlidingViewController != nil)
-					currentSlidingViewController = _csController.coverSheetSlidingViewController;
+		if (![[(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay] isKindOfClass:%c(SBPowerDownController)]) {
+			// the following still seems to crash on iOS 11 (need to figure out correct way of invoking the new NC)
+			if (%c(SBCoverSheetPresentationManager) && [%c(SBCoverSheetPresentationManager) respondsToSelector:@selector(sharedInstance)]) {
+				SBCoverSheetPresentationManager *_csController = [%c(SBCoverSheetPresentationManager) sharedInstance];
+				if (_csController != nil) {
+					SBCoverSheetSlidingViewController *currentSlidingViewController = nil;
+					if ([_csController isInSecureApp] && _csController.secureAppSlidingViewController != nil)
+						currentSlidingViewController = _csController.secureAppSlidingViewController;
+					else if (_csController.coverSheetSlidingViewController != nil)
+						currentSlidingViewController = _csController.coverSheetSlidingViewController;
 
-				if (currentSlidingViewController != nil) {
-					if ([_csController isVisible])
-						[currentSlidingViewController _dismissCoverSheetAnimated:YES withCompletion:nil];
+					if (currentSlidingViewController != nil) {
+						if ([_csController isVisible])
+							[currentSlidingViewController _dismissCoverSheetAnimated:YES withCompletion:nil];
+						else
+							[currentSlidingViewController _presentCoverSheetAnimated:YES withCompletion:nil];
+					}
+				}
+			} else if (%c(SBNotificationCenterController) && [%c(SBNotificationCenterController) respondsToSelector:@selector(sharedInstance)]) {
+				SBNotificationCenterController *_ncController = [%c(SBNotificationCenterController) sharedInstance];
+				if (_ncController != nil) {
+					if ([_ncController isVisible])
+						[_ncController dismissAnimated:YES];
 					else
-						[currentSlidingViewController _presentCoverSheetAnimated:YES withCompletion:nil];
+						[_ncController presentAnimated:YES];
 				}
 			}
-		} else if (%c(SBNotificationCenterController) && [%c(SBNotificationCenterController) respondsToSelector:@selector(sharedInstance)]) {
-			SBNotificationCenterController *_ncController = [%c(SBNotificationCenterController) sharedInstance];
-			if (_ncController != nil) {
-				if ([_ncController isVisible])
-					[_ncController dismissAnimated:YES];
-				else
-					[_ncController presentAnimated:YES];
+		}
+	} else if (action == lastApp) {
+		id topDisplay = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay];
+		if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBDashBoardViewController)] && (%c(SBCoverSheetPresentationManager) == nil || [[%c(SBCoverSheetPresentationManager) sharedInstance] hasBeenDismissedSinceKeybagLock])) {
+			BOOL isApplication = [topDisplay isKindOfClass:%c(SBApplication)];
+			SBApplication *toApplication = [[%c(SBApplicationController) sharedInstance] applicationWithBundleIdentifier:isApplication ? lastApplicationIdentifier : currentApplicationIdentifier];
+			if (toApplication != nil) {
+				SBMainWorkspace *workspace = [%c(SBMainWorkspace) sharedInstance];
+				SBWorkspaceTransitionRequest *request = nil;
+				if (%c(SBWorkspaceApplication)) {
+					request = [workspace createRequestForApplicationActivation:[%c(SBWorkspaceApplication) entityForApplication:toApplication] options:0];
+				} else {
+					SBDeviceApplicationSceneEntity *deviceApplicationSceneEntity = [[%c(SBDeviceApplicationSceneEntity) alloc] initWithApplicationForMainDisplay:toApplication];
+					request = [workspace createRequestForApplicationActivation:deviceApplicationSceneEntity options:0];
+					[deviceApplicationSceneEntity release];
+				}
+				[workspace executeTransitionRequest:request];
 			}
 		}
+	} else if (action == rotationLock) {
+		lockOrUnlockOrientation([(SpringBoard *)[UIApplication sharedApplication] _frontMostAppOrientation]);
+	} else if (action == rotatePortraitAndLock) {
+		lockOrUnlockOrientation(UIInterfaceOrientationPortrait);
 	}
 }
 
@@ -267,6 +326,14 @@ static void hapticVibe() {
 	[self.tapAndHoldTapGestureRecognizer release];
 	self.tapAndHoldTapGestureRecognizer = nil;
 	%orig;
+}
+%end
+
+%hook SBUIBiometricResource
+-(void)noteScreenDidTurnOff {
+	// disable previous action if allow taps on screen off is enabled
+	if (!isEnabled || !isAllowTapOnScreenOffEnabled)
+		%orig;
 }
 %end
 

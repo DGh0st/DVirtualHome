@@ -12,7 +12,10 @@ typedef enum Action : NSInteger {
 	screenshot,
 	cc,
 	nc,
-	nothing
+	nothing,
+	lastApp,
+	rotationLock,
+	rotatePortraitAndLock
 } Action;
 
 #define kIdentifier @"com.dgh0st.dvirtualhome"
@@ -27,6 +30,7 @@ static Action tapAndHoldAction = siri;
 static BOOL isVibrationEnabled = YES;
 static CGFloat vibrationIntensity = 0.75;
 static NSInteger vibrationDuration = 30; 
+static BOOL isAllowTapOnScreenOffEnabled = NO;
 
 @interface SBMainSwitcherViewController : UIViewController
 +(id)sharedInstance;
@@ -44,10 +48,14 @@ static NSInteger vibrationDuration = 30;
 @end
 
 @interface SpringBoard : UIApplication
+@property (nonatomic, retain) NSString *lastApplicationIdentifier;
+@property (nonatomic, retain) NSString *currentApplicationIdentifier;
 -(void)_simulateHomeButtonPress;
 -(void)_simulateLockButtonPress;
 -(SBScreenshotManager *)screenshotManager;
 -(void)takeScreenshot;
+-(id)_accessibilityTopDisplay;
+-(UIInterfaceOrientation)_frontMostAppOrientation;
 @end
 
 @interface SBAssistantController
@@ -81,6 +89,7 @@ static NSInteger vibrationDuration = 30;
 @property(retain, nonatomic) SBCoverSheetSlidingViewController *coverSheetSlidingViewController;
 @property(retain, nonatomic) SBCoverSheetSlidingViewController *secureAppSlidingViewController;
 +(id)sharedInstance;
+-(BOOL)hasBeenDismissedSinceKeybagLock;
 -(BOOL)isVisible;
 -(BOOL)isInSecureApp;
 @end
@@ -129,4 +138,50 @@ static NSInteger vibrationDuration = 30;
 +(id)sharedInstance;
 -(void)addGestureRecognizer:(id)arg1 toDisplay:(id)arg2;
 -(void)addGestureRecognizer:(id)arg1 toDisplayWithIdentity:(id)arg2;
+@end
+
+@interface SBApplication : NSObject
+-(NSString *)bundleIdentifier;
+@end
+
+@interface SBApplicationController : NSObject
++(id)sharedInstance;
+-(id)applicationWithBundleIdentifier:(id)arg1;
+@end
+
+@interface SBMainWorkspace : NSObject
++(id)sharedInstance;
+-(id)createRequestForApplicationActivation:(id)arg1 options:(NSUInteger)arg2;
+-(BOOL)executeTransitionRequest:(id)arg1;
+@end
+
+@interface SBWorkspaceApplication : NSObject
++(id)entityForApplication:(id)arg1;
+@end
+
+@interface SBDeviceApplicationSceneEntity : NSObject
+-(id)initWithApplicationForMainDisplay:(id)arg1;
+@end
+
+@interface SBWorkspaceTransitionRequest : NSObject
+@end
+
+@interface SBOrientationLockManager : NSObject
++(id)sharedInstance;
+-(BOOL)isUserLocked;
+-(void)lock:(UIInterfaceOrientation)arg1;
+-(void)unlock;
+@end
+
+@interface UIDevice (DVirtualHome)
+-(void)setOrientation:(NSInteger)arg1;
+@end
+
+@interface SBUIBiometricResource
+-(void)_fingerDetectAllowedStateMayHaveChangedForReason:(id)arg1;
+@end
+
+@interface SBBacklightController
++(id)sharedInstance;
+-(BOOL)screenIsOn;
 @end

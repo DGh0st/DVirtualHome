@@ -48,9 +48,12 @@
 					<string>Switcher</string>
 					<string>Reachability</string>
 					<string>Siri</string>
-					<string>Sreenshot</string>
+					<string>Srceenshot</string>
 					<string>Control Center</string>
 					<string>Notification Center</string>
+					<string>Last App</string>
+					<string>Rotation Lock</string>
+					<string>Rotate to Portrait &amp; Lock</string>
 					<string>Nothing</string>
 				</array>
 			<key>validValues</key>
@@ -63,6 +66,9 @@
 					<integer>5</integer>
 					<integer>6</integer>
 					<integer>7</integer>
+					<integer>9</integer>
+					<integer>10</integer>
+					<integer>11</integer>
 					<integer>8</integer>
 				</array>
 			<key>default</key>
@@ -88,9 +94,12 @@
 					<string>Switcher</string>
 					<string>Reachability</string>
 					<string>Siri</string>
-					<string>Sreenshot</string>
+					<string>Srceenshot</string>
 					<string>Control Center</string>
 					<string>Notification Center</string>
+					<string>Last App</string>
+					<string>Rotation Lock</string>
+					<string>Rotate to Portrait &amp; Lock</string>
 					<string>Nothing</string>
 				</array>
 			<key>validValues</key>
@@ -103,6 +112,9 @@
 					<integer>5</integer>
 					<integer>6</integer>
 					<integer>7</integer>
+					<integer>9</integer>
+					<integer>10</integer>
+					<integer>11</integer>
 					<integer>8</integer>
 				</array>
 			<key>default</key>
@@ -128,9 +140,12 @@
 					<string>Switcher</string>
 					<string>Reachability</string>
 					<string>Siri</string>
-					<string>Sreenshot</string>
+					<string>Srceenshot</string>
 					<string>Control Center</string>
 					<string>Notification Center</string>
+					<string>Last App</string>
+					<string>Rotation Lock</string>
+					<string>Rotate to Portrait &amp; Lock</string>
 					<string>Nothing</string>
 				</array>
 			<key>validValues</key>
@@ -143,6 +158,9 @@
 					<integer>5</integer>
 					<integer>6</integer>
 					<integer>7</integer>
+					<integer>9</integer>
+					<integer>10</integer>
+					<integer>11</integer>
 					<integer>8</integer>
 				</array>
 			<key>default</key>
@@ -168,9 +186,12 @@
 					<string>Switcher</string>
 					<string>Reachability</string>
 					<string>Siri</string>
-					<string>Sreenshot</string>
+					<string>Srceenshot</string>
 					<string>Control Center</string>
 					<string>Notification Center</string>
+					<string>Last App</string>
+					<string>Rotation Lock</string>
+					<string>Rotate to Portrait &amp; Lock</string>
 					<string>Nothing</string>
 				</array>
 			<key>validValues</key>
@@ -183,6 +204,9 @@
 					<integer>5</integer>
 					<integer>6</integer>
 					<integer>7</integer>
+					<integer>9</integer>
+					<integer>10</integer>
+					<integer>11</integer>
 					<integer>8</integer>
 				</array>
 			<key>default</key>
@@ -261,6 +285,26 @@
 			<real>1.0</real>
 			<key>showValue</key>
 			<true/>
+			<key>PostNotification</key>
+			<string>com.dgh0st.dvirtualhome/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Battery Waster</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.dgh0st.dvirtualhome</string>
+			<key>key</key>
+			<string>isAllowTapOnScreenOffEnabled</string>
+			<key>label</key>
+			<string>Wake Device With Tap</string>
 			<key>PostNotification</key>
 			<string>com.dgh0st.dvirtualhome/settingschanged</string>
 		</dict>
