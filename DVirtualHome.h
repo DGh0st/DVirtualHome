@@ -177,10 +177,6 @@ static BOOL isAllowTapOnScreenOffEnabled = NO;
 -(void)setOrientation:(NSInteger)arg1;
 @end
 
-@interface SBUIBiometricResource
--(void)_fingerDetectAllowedStateMayHaveChangedForReason:(id)arg1;
-@end
-
 @interface SBBacklightController
 +(id)sharedInstance;
 -(BOOL)screenIsOn;

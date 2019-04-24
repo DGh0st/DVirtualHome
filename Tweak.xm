@@ -42,9 +42,14 @@ static void hapticVibe() {
 	AudioServicesPlaySystemSoundWithVibration(kSystemSoundID_Vibrate, nil, vibDict);
 }
 
+static BOOL disableActions = NO;
+
 %hook SBDashBoardViewController
 -(void)handleBiometricEvent:(NSInteger)arg1 {
 	%orig(arg1);
+
+	// Touch Up, Down or Hold
+	disableActions = arg1 != 0 && arg1 != 1;
 
 	if (isEnabled && arg1 == 1 && isVibrationEnabled) { // Down
 		hapticVibe();
@@ -91,6 +96,9 @@ static NSString *currentApplicationIdentifier = nil;
 %hook SBHomeHardwareButton
 %new
 -(void)performAction:(Action)action {
+	if (disableActions)
+		return; // do nothing since we are in middle of authentication
+
 	if (action == home || ![[%c(SBBacklightController) sharedInstance] screenIsOn]) {
 		[(SpringBoard *)[UIApplication sharedApplication] _simulateHomeButtonPress];
 	} else if (action == lock) {
