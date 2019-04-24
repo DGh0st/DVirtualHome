@@ -48,7 +48,7 @@ static BOOL disableActions = NO;
 -(void)handleBiometricEvent:(NSInteger)arg1 {
 	%orig(arg1);
 
-	// Touch Up, Down or Hold
+	// Touch Up or Down
 	disableActions = arg1 != 0 && arg1 != 1;
 
 	if (isEnabled && arg1 == 1 && isVibrationEnabled) { // Down
