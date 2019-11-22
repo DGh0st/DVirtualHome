@@ -26,7 +26,6 @@ static void preferencesChanged() {
 		isVibrationEnabled =  [prefs objectForKey:@"isVibrationEnabled"] ? [[prefs objectForKey:@"isVibrationEnabled"] boolValue] : YES;
 		vibrationIntensity =  [prefs objectForKey:@"vibrationIntensity"] ? [[prefs objectForKey:@"vibrationIntensity"] floatValue] : 0.75;
 		vibrationDuration =  [prefs objectForKey:@"vibrationDuration"] ? [[prefs objectForKey:@"vibrationDuration"] intValue] : 30;
-		isAllowTapOnScreenOffEnabled = [prefs objectForKey:@"isAllowTapOnScreenOffEnabled"] ? [[prefs objectForKey:@"isAllowTapOnScreenOffEnabled"] boolValue] : NO;
 	}
 	[prefs release];
 
@@ -42,22 +41,23 @@ static void hapticVibe() {
 	AudioServicesPlaySystemSoundWithVibration(kSystemSoundID_Vibrate, nil, vibDict);
 }
 
+// iOS 13+ doesn't currently support disableActions
 static BOOL disableActions = NO;
 
 %hook SBDashBoardViewController
--(void)handleBiometricEvent:(NSInteger)arg1 {
+-(void)handleBiometricEvent:(NSUInteger)arg1 {
 	%orig(arg1);
 
 	// Touch Up or Down
 	disableActions = arg1 != 0 && arg1 != 1;
 
-	if (isEnabled && arg1 == 1 && isVibrationEnabled) { // Down
+	/*if (isEnabled && arg1 == 1 && isVibrationEnabled) { // Down
 		hapticVibe();
-	}
+	}*/
 }
 %end
 
-void lockOrUnlockOrientation(UIInterfaceOrientation orientation) {
+static inline void lockOrUnlockOrientation(UIInterfaceOrientation orientation) {
 	SBOrientationLockManager *orientationLockManager = [%c(SBOrientationLockManager) sharedInstance];
 	if ([orientationLockManager isUserLocked]) {
 		[orientationLockManager unlock];
@@ -91,6 +91,19 @@ static NSString *currentApplicationIdentifier = nil;
 %property(retain,nonatomic) UIHBClickGestureRecognizer *singleTapGestureRecognizer;
 %property(retain,nonatomic) UILongPressGestureRecognizer *longTapGestureRecognizer;
 %property(retain,nonatomic) UILongPressGestureRecognizer *tapAndHoldTapGestureRecognizer;
+%property(retain,nonatomic) UILongPressGestureRecognizer *vibrationGestureRecognizer;
+
+-(void)dealloc {
+	[self.singleTapGestureRecognizer release];
+	self.singleTapGestureRecognizer = nil;
+	[self.longTapGestureRecognizer release];
+	self.longTapGestureRecognizer = nil;
+	[self.tapAndHoldTapGestureRecognizer release];
+	self.tapAndHoldTapGestureRecognizer = nil;
+	[self.vibrationGestureRecognizer release];
+	self.vibrationGestureRecognizer = nil;
+	%orig;
+}
 %end
 
 %hook SBHomeHardwareButton
@@ -105,22 +118,50 @@ static NSString *currentApplicationIdentifier = nil;
 		[(SpringBoard *)[UIApplication sharedApplication] _simulateLockButtonPress];
 	} else if (action == switcher) {
 		id topDisplay = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay];
-		if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBDashBoardViewController)] && (%c(SBCoverSheetPresentationManager) == nil || [[%c(SBCoverSheetPresentationManager) sharedInstance] hasBeenDismissedSinceKeybagLock])) {
+		if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBPowerDownViewController)] && ![topDisplay isKindOfClass:%c(SBDashBoardViewController)] && ![topDisplay isKindOfClass:%c(CSCoverSheetViewController)] && (%c(SBCoverSheetPresentationManager) == nil || [[%c(SBCoverSheetPresentationManager) sharedInstance] hasBeenDismissedSinceKeybagLock])) {
 			SBMainSwitcherViewController *mainSwitcherViewController = [%c(SBMainSwitcherViewController) sharedInstance];
 			if ([mainSwitcherViewController respondsToSelector:@selector(toggleSwitcherNoninteractively)])
 				[mainSwitcherViewController toggleSwitcherNoninteractively];
 			else if ([mainSwitcherViewController respondsToSelector:@selector(toggleSwitcherNoninteractivelyWithSource:)])
 				[mainSwitcherViewController toggleSwitcherNoninteractivelyWithSource:1];
+			else if ([mainSwitcherViewController respondsToSelector:@selector(toggleMainSwitcherNoninteractivelyWithSource:animated:)])
+				[mainSwitcherViewController toggleMainSwitcherNoninteractivelyWithSource:1 animated:YES];
 		}
 	} else if (action == reachability) {
 		[[%c(SBReachabilityManager) sharedInstance] toggleReachability];
 	} else if (action == siri) {
 		SBAssistantController *_assistantController = [%c(SBAssistantController) sharedInstance];
-		if ([%c(SBAssistantController) isAssistantVisible]) {
-			[_assistantController dismissPluginForEvent:1];
-		} else {
-			[_assistantController handleSiriButtonDownEventFromSource:1 activationEvent:1];
-			[_assistantController handleSiriButtonUpEventFromSource:1];
+		if ([%c(SBAssistantController) respondsToSelector:@selector(isAssistantVisible)]) {
+			if ([%c(SBAssistantController) isAssistantVisible]) {
+				[_assistantController dismissPluginForEvent:1];
+			} else {
+				[_assistantController handleSiriButtonDownEventFromSource:1 activationEvent:1];
+				[_assistantController handleSiriButtonUpEventFromSource:1];
+			}
+		} else if ([%c(SBAssistantController) respondsToSelector:@selector(isVisible)]) {
+			if ([%c(SBAssistantController) isVisible]) {
+				[_assistantController dismissAssistantViewIfNecessary];
+			} else {
+				SiriPresentationSpringBoardMainScreenViewController *presentation = MSHookIvar<SiriPresentationSpringBoardMainScreenViewController *>(_assistantController, "_mainScreenSiriPresentation");
+
+				SiriPresentationOptions *presentationOptions = [[%c(SiriPresentationOptions) alloc] init];
+				presentationOptions.wakeScreen = YES;
+				presentationOptions.hideOtherWindowsDuringAppearance = NO;
+
+				SASRequestOptions *requestOptions = [[%c(SASRequestOptions) alloc] initWithRequestSource:1 uiPresentationIdentifier:@"com.apple.siri.Siriland"];
+				requestOptions.buttonDownTimestamp = requestOptions.timestamp;
+
+				AFApplicationInfo *applicationInfo = [[%c(AFApplicationInfo) alloc] initWithCoder:nil];
+				applicationInfo.pid = [NSProcessInfo processInfo].processIdentifier;
+				applicationInfo.identifier = [NSBundle mainBundle].bundleIdentifier;
+				requestOptions.contextAppInfosForSiriViewController = @[applicationInfo];
+
+				[presentation presentationRequestedWithPresentationOptions:presentationOptions requestOptions:requestOptions];
+
+				[presentationOptions release];
+				[requestOptions release];
+				[applicationInfo release];
+			}
 		}
 	} else if (action == screenshot) {
 		SpringBoard *_springboard = (SpringBoard *)[UIApplication sharedApplication];
@@ -129,7 +170,8 @@ static NSString *currentApplicationIdentifier = nil;
 		else
 			[[_springboard screenshotManager] saveScreenshotsWithCompletion:nil];
 	} else if (action == cc) {
-		if (![[(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay] isKindOfClass:%c(SBPowerDownController)]) {
+		id topDisplay = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay];
+		if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBPowerDownViewController)]) {
 			SBControlCenterController *_ccController = [%c(SBControlCenterController) sharedInstance];
 			if ([_ccController isVisible])
 				[_ccController dismissAnimated:YES];
@@ -138,8 +180,8 @@ static NSString *currentApplicationIdentifier = nil;
 		}
 	} else if (action == nc) {
 		if (![[(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay] isKindOfClass:%c(SBPowerDownController)]) {
-			// the following still seems to crash on iOS 11 (need to figure out correct way of invoking the new NC)
-			if (%c(SBCoverSheetPresentationManager) && [%c(SBCoverSheetPresentationManager) respondsToSelector:@selector(sharedInstance)]) {
+			id topDisplay = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay];
+			if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBPowerDownViewController)]) {
 				SBCoverSheetPresentationManager *_csController = [%c(SBCoverSheetPresentationManager) sharedInstance];
 				if (_csController != nil) {
 					SBCoverSheetSlidingViewController *currentSlidingViewController = nil;
@@ -167,8 +209,9 @@ static NSString *currentApplicationIdentifier = nil;
 		}
 	} else if (action == lastApp) {
 		id topDisplay = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay];
-		if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBDashBoardViewController)] && (%c(SBCoverSheetPresentationManager) == nil || [[%c(SBCoverSheetPresentationManager) sharedInstance] hasBeenDismissedSinceKeybagLock])) {
-			BOOL isApplication = [topDisplay isKindOfClass:%c(SBApplication)];
+		if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBPowerDownViewController)] && ![topDisplay isKindOfClass:%c(SBDashBoardViewController)] && ![topDisplay isKindOfClass:%c(CSCoverSheetViewController)] && (%c(SBCoverSheetPresentationManager) == nil || [[%c(SBCoverSheetPresentationManager) sharedInstance] hasBeenDismissedSinceKeybagLock])) {
+			// BOOL isApplication = [topDisplay isKindOfClass:%c(SBApplication)];
+			BOOL isApplication = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityFrontMostApplication] != nil;
 			SBApplication *toApplication = [[%c(SBApplicationController) sharedInstance] applicationWithBundleIdentifier:isApplication ? lastApplicationIdentifier : currentApplicationIdentifier];
 			if (toApplication != nil) {
 				SBMainWorkspace *workspace = [%c(SBMainWorkspace) sharedInstance];
@@ -220,6 +263,13 @@ static NSString *currentApplicationIdentifier = nil;
 }
 
 %new
+-(void)vibrationTap:(UILongPressGestureRecognizer *)arg1 {
+	if (isEnabled && isVibrationEnabled && arg1.state == UIGestureRecognizerStateBegan) {
+		hapticVibe();
+	}
+}
+
+%new
 -(void)createSingleTapGestureRecognizerWithConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [arg1 doubleTapUpGestureRecognizer];
 	SBSystemGestureManager *_systemGestureManager = [arg1 systemGestureManager];
@@ -232,11 +282,15 @@ static NSString *currentApplicationIdentifier = nil;
 	[_singleTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
 	[_singleTapGestureRecognizer setClickCount:1];
 
-	FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
-	if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
-		[_fbSystemGestureManager addGestureRecognizer:_singleTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
-	else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
-		[_fbSystemGestureManager addGestureRecognizer:_singleTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	if (%c(FBSystemGestureManager)) {
+		FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
+		if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
+			[_fbSystemGestureManager addGestureRecognizer:_singleTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
+		else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
+			[_fbSystemGestureManager addGestureRecognizer:_singleTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	} else {
+		[[%c(_UISystemGestureManager) sharedInstance] addGestureRecognizer:_singleTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
+	}
 
 	if (arg1.singleTapGestureRecognizer != nil)
 		[arg1.singleTapGestureRecognizer release];
@@ -254,11 +308,15 @@ static NSString *currentApplicationIdentifier = nil;
 	[_longTapGestureRecognizer setMinimumPressDuration:0.4];
 	[_longTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
 
-	FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
-	if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
-		[_fbSystemGestureManager addGestureRecognizer:_longTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
-	else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
-		[_fbSystemGestureManager addGestureRecognizer:_longTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	if (%c(FBSystemGestureManager)) {
+		FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
+		if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
+			[_fbSystemGestureManager addGestureRecognizer:_longTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
+		else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
+			[_fbSystemGestureManager addGestureRecognizer:_longTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	} else {
+		[[%c(_UISystemGestureManager) sharedInstance] addGestureRecognizer:_longTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
+	}
 
 	if (arg1.longTapGestureRecognizer != nil)
 		[arg1.longTapGestureRecognizer release];
@@ -276,19 +334,50 @@ static NSString *currentApplicationIdentifier = nil;
 	[_tapAndHoldTapGestureRecognizer setMinimumPressDuration:0.4];
 	[_tapAndHoldTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
 
-	FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
-	if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
-		[_fbSystemGestureManager addGestureRecognizer:_tapAndHoldTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
-	else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
-		[_fbSystemGestureManager addGestureRecognizer:_tapAndHoldTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	if (%c(FBSystemGestureManager)) {
+		FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
+		if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
+			[_fbSystemGestureManager addGestureRecognizer:_tapAndHoldTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
+		else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
+			[_fbSystemGestureManager addGestureRecognizer:_tapAndHoldTapGestureRecognizer toDisplay:[_systemGestureManager display]];
+	} else {
+		[[%c(_UISystemGestureManager) sharedInstance] addGestureRecognizer:_tapAndHoldTapGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
+	}
 
 	if (arg1.tapAndHoldTapGestureRecognizer != nil)
 		[arg1.tapAndHoldTapGestureRecognizer release];
 	arg1.tapAndHoldTapGestureRecognizer = _tapAndHoldTapGestureRecognizer;
 }
 
+%new
+-(void)createVibrationGestureRecognizerWithConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
+	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [arg1 doubleTapUpGestureRecognizer];
+	SBSystemGestureManager *_systemGestureManager = [arg1 systemGestureManager];
+
+	UILongPressGestureRecognizer *_vibrationGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(vibrationTap:)];
+	[_vibrationGestureRecognizer setDelegate:self];
+	[_vibrationGestureRecognizer setNumberOfTapsRequired:0];
+	[_vibrationGestureRecognizer setMinimumPressDuration:0];
+	[_vibrationGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
+
+	if (%c(FBSystemGestureManager)) {
+		FBSystemGestureManager *_fbSystemGestureManager = [%c(FBSystemGestureManager) sharedInstance];
+		if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplayWithIdentity:)])
+			[_fbSystemGestureManager addGestureRecognizer:_vibrationGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
+		else if ([_fbSystemGestureManager respondsToSelector:@selector(addGestureRecognizer:toDisplay:)])
+			[_fbSystemGestureManager addGestureRecognizer:_vibrationGestureRecognizer toDisplay:[_systemGestureManager display]];
+	} else {
+		[[%c(_UISystemGestureManager) sharedInstance] addGestureRecognizer:_vibrationGestureRecognizer toDisplayWithIdentity:MSHookIvar<id>(_systemGestureManager, "_displayIdentity")];
+	}
+
+	if (arg1.vibrationGestureRecognizer != nil)
+		[arg1.vibrationGestureRecognizer release];
+	arg1.vibrationGestureRecognizer = _vibrationGestureRecognizer;
+}
+
 -(void)_createGestureRecognizersWithConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	%orig(arg1);
+	[self createVibrationGestureRecognizerWithConfiguration:arg1];
 	[self createTapAndHoldGestureRecognizerWithConfiguration:arg1];
 	[self createLongTapGestureRecognizerWithConfiguration:arg1];
 	[self createSingleTapGestureRecognizerWithConfiguration:arg1];
@@ -297,6 +386,9 @@ static NSString *currentApplicationIdentifier = nil;
 
 -(void)setGestureRecognizerConfiguration:(SBHomeHardwareButtonGestureRecognizerConfiguration *)arg1 {
 	%orig(arg1);
+	if (!arg1.vibrationGestureRecognizer) {
+		[self createVibrationGestureRecognizerWithConfiguration:arg1];
+	}
 	if (!arg1.tapAndHoldTapGestureRecognizer) {
 		[self createTapAndHoldGestureRecognizerWithConfiguration:arg1];
 	}
@@ -316,7 +408,9 @@ static NSString *currentApplicationIdentifier = nil;
 	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [_configuration doubleTapUpGestureRecognizer];
 	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = _configuration.tapAndHoldTapGestureRecognizer;
 
-	if ((arg1 == _singleTapGestureRecognizer && arg2 == _longTapGestureRecognizer) || (arg1 == _longTapGestureRecognizer && arg2 == _singleTapGestureRecognizer)) {
+	if (arg1 == _configuration.vibrationGestureRecognizer || arg2 == _configuration.vibrationGestureRecognizer) {
+		return YES;
+	} else if ((arg1 == _singleTapGestureRecognizer && arg2 == _longTapGestureRecognizer) || (arg1 == _longTapGestureRecognizer && arg2 == _singleTapGestureRecognizer)) {
 		return YES;
 	} else if ((arg1 == _doubleTapUpGestureRecognizer && arg2 == _tapAndHoldTapGestureRecognizer) || (arg1 == _tapAndHoldTapGestureRecognizer && arg2 == _doubleTapUpGestureRecognizer)) {
 		return YES;
@@ -325,23 +419,9 @@ static NSString *currentApplicationIdentifier = nil;
 }
 %end
 
-%hook SBHomeHardwareButtonGestureRecognizerConfiguration
--(void)dealloc {
-	[self.singleTapGestureRecognizer release];
-	self.singleTapGestureRecognizer = nil;
-	[self.longTapGestureRecognizer release];
-	self.longTapGestureRecognizer = nil;
-	[self.tapAndHoldTapGestureRecognizer release];
-	self.tapAndHoldTapGestureRecognizer = nil;
-	%orig;
-}
-%end
-
-%hook SBUIBiometricResource
--(void)noteScreenDidTurnOff {
-	// disable previous action if allow taps on screen off is enabled
-	if (!isEnabled || !isAllowTapOnScreenOffEnabled)
-		%orig;
+%hook SBReachabilityManager
++(BOOL)reachabilitySupported {
+	return isEnabled ? YES : %orig();
 }
 %end
 

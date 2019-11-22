@@ -30,12 +30,12 @@ static Action tapAndHoldAction = siri;
 static BOOL isVibrationEnabled = YES;
 static CGFloat vibrationIntensity = 0.75;
 static NSInteger vibrationDuration = 30; 
-static BOOL isAllowTapOnScreenOffEnabled = NO;
 
 @interface SBMainSwitcherViewController : UIViewController
 +(id)sharedInstance;
 -(BOOL)toggleSwitcherNoninteractively;
 -(BOOL)toggleSwitcherNoninteractivelyWithSource:(NSInteger)arg1;
+-(BOOL)toggleMainSwitcherNoninteractivelyWithSource:(NSInteger)arg1 animated:(BOOL)arg2;
 @end
 
 @interface SBReachabilityManager : NSObject
@@ -55,15 +55,42 @@ static BOOL isAllowTapOnScreenOffEnabled = NO;
 -(SBScreenshotManager *)screenshotManager;
 -(void)takeScreenshot;
 -(id)_accessibilityTopDisplay;
+-(id)_accessibilityFrontMostApplication;
 -(UIInterfaceOrientation)_frontMostAppOrientation;
 @end
 
-@interface SBAssistantController
+@interface SiriPresentationOptions : NSObject
+@property (assign, nonatomic) BOOL wakeScreen;
+@property (assign, nonatomic) BOOL hideOtherWindowsDuringAppearance;
+@end
+
+@interface AFApplicationInfo : NSObject
+@property (nonatomic, copy) NSString *identifier;
+@property (assign, nonatomic) NSInteger pid;
+-(id)initWithCoder:(id)arg1;
+@end
+
+@interface SASRequestOptions : NSObject
+@property (assign, nonatomic) CGFloat timestamp;
+@property (assign, nonatomic) CGFloat buttonDownTimestamp;
+@property (nonatomic, retain) NSArray *contextAppInfosForSiriViewController;
+-(id)initWithRequestSource:(NSInteger)arg1 uiPresentationIdentifier:(id)arg2;
+@end
+
+@interface SiriPresentationSpringBoardMainScreenViewController : UIViewController
+-(oneway void)presentationRequestedWithPresentationOptions:(id)arg1 requestOptions:(id)arg2;
+@end
+
+@interface SBAssistantController {
+	SiriPresentationSpringBoardMainScreenViewController* _mainScreenSiriPresentation;
+}
 +(BOOL)isAssistantVisible;
++(BOOL)isVisible;
 +(id)sharedInstance;
 -(BOOL)handleSiriButtonDownEventFromSource:(NSInteger)arg1 activationEvent:(NSInteger)arg2;
 -(void)handleSiriButtonUpEventFromSource:(NSInteger)arg1;
 -(void)dismissPluginForEvent:(NSInteger)arg1;
+-(void)dismissAssistantViewIfNecessary;
 @end
 
 @interface SBControlCenterController
@@ -86,8 +113,8 @@ static BOOL isAllowTapOnScreenOffEnabled = NO;
 @end
 
 @interface SBCoverSheetPresentationManager
-@property(retain, nonatomic) SBCoverSheetSlidingViewController *coverSheetSlidingViewController;
-@property(retain, nonatomic) SBCoverSheetSlidingViewController *secureAppSlidingViewController;
+@property (retain, nonatomic) SBCoverSheetSlidingViewController *coverSheetSlidingViewController;
+@property (retain, nonatomic) SBCoverSheetSlidingViewController *secureAppSlidingViewController;
 +(id)sharedInstance;
 -(BOOL)hasBeenDismissedSinceKeybagLock;
 -(BOOL)isVisible;
@@ -116,9 +143,10 @@ static BOOL isAllowTapOnScreenOffEnabled = NO;
 @end
 
 @interface SBHomeHardwareButtonGestureRecognizerConfiguration
-@property(retain,nonatomic) UIHBClickGestureRecognizer *singleTapGestureRecognizer;
-@property(retain,nonatomic) UILongPressGestureRecognizer *longTapGestureRecognizer;
-@property(retain,nonatomic) UILongPressGestureRecognizer *tapAndHoldTapGestureRecognizer;
+@property (retain, nonatomic) UIHBClickGestureRecognizer *singleTapGestureRecognizer;
+@property (retain, nonatomic) UILongPressGestureRecognizer *longTapGestureRecognizer;
+@property (retain, nonatomic) UILongPressGestureRecognizer *tapAndHoldTapGestureRecognizer;
+@property (retain, nonatomic) UILongPressGestureRecognizer *vibrationGestureRecognizer;
 -(id)doubleTapUpGestureRecognizer;
 -(SBSystemGestureManager *)systemGestureManager;
 @end
@@ -128,16 +156,19 @@ static BOOL isAllowTapOnScreenOffEnabled = NO;
 -(void)createSingleTapGestureRecognizerWithConfiguration:(id)arg1;
 -(void)createLongTapGestureRecognizerWithConfiguration:(id)arg1;
 -(void)createTapAndHoldGestureRecognizerWithConfiguration:(id)arg1;
--(void)createTripleTapGestureRecognizerWithConfiguration:(id)arg1;
--(void)createDoubleTapAndHoldGestureRecognizerWithConfiguration:(id)arg1;
+-(void)createVibrationGestureRecognizerWithConfiguration:(id)arg1;
 -(void)performAction:(Action)action;
--(void)resetGestures:(id)arg1;
 @end
 
 @interface FBSystemGestureManager : NSObject
 +(id)sharedInstance;
 -(void)addGestureRecognizer:(id)arg1 toDisplay:(id)arg2;
 -(void)addGestureRecognizer:(id)arg1 toDisplayWithIdentity:(id)arg2;
+@end
+
+@interface SBMainDisplaySystemGestureManager  : NSObject
++(id)sharedInstance;
+-(void)addGestureRecognizer:(id)arg1 ttoDisplayWithIdentity:(id)arg2;
 @end
 
 @interface SBApplication : NSObject
