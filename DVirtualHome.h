@@ -147,6 +147,7 @@ static NSInteger vibrationDuration = 30;
 @property (retain, nonatomic) UILongPressGestureRecognizer *longTapGestureRecognizer;
 @property (retain, nonatomic) UILongPressGestureRecognizer *tapAndHoldTapGestureRecognizer;
 @property (retain, nonatomic) UILongPressGestureRecognizer *vibrationGestureRecognizer;
+@property (retain, nonatomic) UIHBClickGestureRecognizer *initialButtonDownGestureRecognizer;
 -(id)doubleTapUpGestureRecognizer;
 -(SBSystemGestureManager *)systemGestureManager;
 @end
@@ -171,8 +172,14 @@ static NSInteger vibrationDuration = 30;
 -(void)addGestureRecognizer:(id)arg1 ttoDisplayWithIdentity:(id)arg2;
 @end
 
+@interface SBApplicationProcessState : NSObject // iOS 11+
+@property (getter=isRunning, nonatomic, readonly) BOOL running;
+@end
+
 @interface SBApplication : NSObject
+@property (nonatomic,readonly) SBApplicationProcessState *processState; // iOS 11+
 -(NSString *)bundleIdentifier;
+-(BOOL)isRunning; // iOS 10
 @end
 
 @interface SBApplicationController : NSObject

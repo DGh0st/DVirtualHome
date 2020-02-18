@@ -45,15 +45,18 @@ static void hapticVibe() {
 static BOOL disableActions = NO;
 
 %hook SBDashBoardViewController
--(void)handleBiometricEvent:(NSUInteger)arg1 {
+-(void)biometricEventMonitor:(id)arg1 handleBiometricEvent:(NSUInteger)arg2 { // iOS 10 - 10.1
+	%orig(arg1, arg2);
+
+	// Touch Up or Down
+	disableActions = arg2 != 0 && arg2 != 1;
+}
+
+-(void)handleBiometricEvent:(NSUInteger)arg1 { // iOS 10.2 - 12
 	%orig(arg1);
 
 	// Touch Up or Down
 	disableActions = arg1 != 0 && arg1 != 1;
-
-	/*if (isEnabled && arg1 == 1 && isVibrationEnabled) { // Down
-		hapticVibe();
-	}*/
 }
 %end
 
@@ -213,7 +216,8 @@ static NSString *currentApplicationIdentifier = nil;
 			// BOOL isApplication = [topDisplay isKindOfClass:%c(SBApplication)];
 			BOOL isApplication = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityFrontMostApplication] != nil;
 			SBApplication *toApplication = [[%c(SBApplicationController) sharedInstance] applicationWithBundleIdentifier:isApplication ? lastApplicationIdentifier : currentApplicationIdentifier];
-			if (toApplication != nil) {
+			BOOL isApplicationRunning = [toApplication respondsToSelector:@selector(isRunning)] ? [toApplication isRunning] : toApplication.processState.running;
+			if (toApplication != nil && isApplicationRunning) {
 				SBMainWorkspace *workspace = [%c(SBMainWorkspace) sharedInstance];
 				SBWorkspaceTransitionRequest *request = nil;
 				if (%c(SBWorkspaceApplication)) {
@@ -279,6 +283,7 @@ static NSString *currentApplicationIdentifier = nil;
 	[_singleTapGestureRecognizer requireGestureRecognizerToFail:arg1.longTapGestureRecognizer];
 	[_singleTapGestureRecognizer requireGestureRecognizerToFail:arg1.tapAndHoldTapGestureRecognizer];
 	[_singleTapGestureRecognizer requireGestureRecognizerToFail:_doubleTapUpGestureRecognizer];
+	[_singleTapGestureRecognizer requireGestureRecognizerToFail:arg1.initialButtonDownGestureRecognizer];
 	[_singleTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
 	[_singleTapGestureRecognizer setClickCount:1];
 
@@ -304,6 +309,7 @@ static NSString *currentApplicationIdentifier = nil;
 
 	UILongPressGestureRecognizer *_longTapGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(longTap:)];
 	[_longTapGestureRecognizer setDelegate:self];
+	[_longTapGestureRecognizer requireGestureRecognizerToFail:arg1.initialButtonDownGestureRecognizer];
 	[_longTapGestureRecognizer setNumberOfTapsRequired:0];
 	[_longTapGestureRecognizer setMinimumPressDuration:0.4];
 	[_longTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
@@ -330,6 +336,7 @@ static NSString *currentApplicationIdentifier = nil;
 
 	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(tapAndHold:)];
 	[_tapAndHoldTapGestureRecognizer setDelegate:self];
+	[_tapAndHoldTapGestureRecognizer requireGestureRecognizerToFail:arg1.initialButtonDownGestureRecognizer];
 	[_tapAndHoldTapGestureRecognizer setNumberOfTapsRequired:1];
 	[_tapAndHoldTapGestureRecognizer setMinimumPressDuration:0.4];
 	[_tapAndHoldTapGestureRecognizer setAllowedPressTypes:[_doubleTapUpGestureRecognizer allowedPressTypes]];
@@ -407,8 +414,9 @@ static NSString *currentApplicationIdentifier = nil;
 
 	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [_configuration doubleTapUpGestureRecognizer];
 	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = _configuration.tapAndHoldTapGestureRecognizer;
+	UILongPressGestureRecognizer *_vibrationGestureRecognizer = _configuration.vibrationGestureRecognizer;
 
-	if (arg1 == _configuration.vibrationGestureRecognizer || arg2 == _configuration.vibrationGestureRecognizer) {
+	if (arg1 == _vibrationGestureRecognizer || arg2 == _vibrationGestureRecognizer) {
 		return YES;
 	} else if ((arg1 == _singleTapGestureRecognizer && arg2 == _longTapGestureRecognizer) || (arg1 == _longTapGestureRecognizer && arg2 == _singleTapGestureRecognizer)) {
 		return YES;
