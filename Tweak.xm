@@ -43,6 +43,7 @@ static void hapticVibe() {
 
 // iOS 13+ doesn't currently support disableActions
 static BOOL disableActions = NO;
+static BOOL isLongPressGestureActive = NO;
 
 %hook SBDashBoardViewController
 -(void)biometricEventMonitor:(id)arg1 handleBiometricEvent:(NSUInteger)arg2 { // iOS 10 - 10.1
@@ -254,20 +255,35 @@ static NSString *currentApplicationIdentifier = nil;
 
 %new
 -(void)longTap:(UILongPressGestureRecognizer *)arg1 {
-	if (isEnabled && arg1.state == UIGestureRecognizerStateBegan) {
+	if (isEnabled && arg1.state == UIGestureRecognizerStateBegan && !isLongPressGestureActive) {
 		[self performAction:longHoldAction];
+
+		// reset the gesture so home button presses can be detected
+		arg1.enabled = NO;
+		arg1.enabled = YES;
 	}
+
+	isLongPressGestureActive = YES;
 }
 
 %new
 -(void)tapAndHold:(UILongPressGestureRecognizer *)arg1 {
 	if (isEnabled && arg1.state == UIGestureRecognizerStateBegan) {
 		[self performAction:tapAndHoldAction];
+
+		// reset the gesture so home button presses can be detected
+		arg1.enabled = NO;
+		arg1.enabled = YES;
 	}
+
+	isLongPressGestureActive = YES;
 }
 
 %new
 -(void)vibrationTap:(UILongPressGestureRecognizer *)arg1 {
+	// taking advantage of the fact that vibration will be recognzied as soon as finger is on sensor
+	isLongPressGestureActive = NO;
+
 	if (isEnabled && isVibrationEnabled && arg1.state == UIGestureRecognizerStateBegan) {
 		hapticVibe();
 	}
