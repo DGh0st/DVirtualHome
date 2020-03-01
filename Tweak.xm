@@ -70,6 +70,22 @@ static inline void lockOrUnlockOrientation(UIInterfaceOrientation orientation) {
 	}
 }
 
+static inline void ResetGestureRecognizers(SBHomeHardwareButtonGestureRecognizerConfiguration *configuration) {
+	UIHBClickGestureRecognizer *_singleTapGestureRecognizer = configuration.singleTapGestureRecognizer;
+	UILongPressGestureRecognizer *_longTapGestureRecognizer = configuration.longTapGestureRecognizer;
+	SBHBDoubleTapUpGestureRecognizer *_doubleTapUpGestureRecognizer = [configuration doubleTapUpGestureRecognizer];
+	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = configuration.tapAndHoldTapGestureRecognizer;
+
+	_singleTapGestureRecognizer.enabled = NO;
+	_singleTapGestureRecognizer.enabled = YES;
+	_longTapGestureRecognizer.enabled = NO;
+	_longTapGestureRecognizer.enabled = YES;
+	_doubleTapUpGestureRecognizer.enabled = NO;
+	_doubleTapUpGestureRecognizer.enabled = YES;
+	_tapAndHoldTapGestureRecognizer.enabled = NO;
+	_tapAndHoldTapGestureRecognizer.enabled = YES;
+}
+
 static NSString *lastApplicationIdentifier = nil;
 static NSString *currentApplicationIdentifier = nil;
 
@@ -259,8 +275,7 @@ static NSString *currentApplicationIdentifier = nil;
 		[self performAction:longHoldAction];
 
 		// reset the gesture so home button presses can be detected
-		arg1.enabled = NO;
-		arg1.enabled = YES;
+		ResetGestureRecognizers([self gestureRecognizerConfiguration]);
 	}
 
 	isLongPressGestureActive = YES;
@@ -272,8 +287,7 @@ static NSString *currentApplicationIdentifier = nil;
 		[self performAction:tapAndHoldAction];
 
 		// reset the gesture so home button presses can be detected
-		arg1.enabled = NO;
-		arg1.enabled = YES;
+		ResetGestureRecognizers([self gestureRecognizerConfiguration]);
 	}
 
 	isLongPressGestureActive = YES;
