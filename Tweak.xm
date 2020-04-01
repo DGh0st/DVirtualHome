@@ -199,11 +199,11 @@ static NSString *currentApplicationIdentifier = nil;
 				[_ccController presentAnimated:YES];
 		}
 	} else if (action == nc) {
-		if (![[(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay] isKindOfClass:%c(SBPowerDownController)]) {
-			id topDisplay = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay];
-			if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBPowerDownViewController)]) {
+		id topDisplay = [(SpringBoard *)[UIApplication sharedApplication] _accessibilityTopDisplay];
+		if (![topDisplay isKindOfClass:%c(SBPowerDownController)] && ![topDisplay isKindOfClass:%c(SBPowerDownViewController)] && ![topDisplay isKindOfClass:%c(SBDashBoardViewController)] && ![topDisplay isKindOfClass:%c(CSCoverSheetViewController)]) {
+			if (%c(SBCoverSheetPresentationManager) && [%c(SBCoverSheetPresentationManager) respondsToSelector:@selector(sharedInstance)]) {
 				SBCoverSheetPresentationManager *_csController = [%c(SBCoverSheetPresentationManager) sharedInstance];
-				if (_csController != nil) {
+				if (_csController != nil && [[%c(SBCoverSheetPresentationManager) sharedInstance] hasBeenDismissedSinceKeybagLock]) {
 					SBCoverSheetSlidingViewController *currentSlidingViewController = nil;
 					if ([_csController isInSecureApp] && _csController.secureAppSlidingViewController != nil)
 						currentSlidingViewController = _csController.secureAppSlidingViewController;
