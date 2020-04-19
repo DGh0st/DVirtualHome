@@ -107,9 +107,10 @@ static NSInteger vibrationDuration = 30;
 -(void)presentAnimated:(BOOL)arg1;
 @end
 
-@interface SBCoverSheetSlidingViewController
+@interface SBCoverSheetSlidingViewController : UIViewController
 -(void)_dismissCoverSheetAnimated:(BOOL)arg1 withCompletion:(id)arg2;
 -(void)_presentCoverSheetAnimated:(BOOL)arg1 withCompletion:(id)arg2;
+-(void)_presentCoverSheetAnimated:(BOOL)arg1 forUserGesture:(BOOL)arg2 withCompletion:(id)arg3;
 @end
 
 @interface SBCoverSheetPresentationManager

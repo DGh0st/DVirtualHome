@@ -41,7 +41,7 @@ static void hapticVibe() {
 	AudioServicesPlaySystemSoundWithVibration(kSystemSoundID_Vibrate, nil, vibDict);
 }
 
-// iOS 13+ doesn't currently support disableActions
+// iOS 13+ doesn't currently support disable actions during lockscreen biometric authentication
 static BOOL disableActions = NO;
 static BOOL isLongPressGestureActive = NO;
 
@@ -59,6 +59,17 @@ static BOOL isLongPressGestureActive = NO;
 	// Touch Up or Down
 	disableActions = arg1 != 0 && arg1 != 1;
 }
+%end
+
+%group iOS13plus
+%hook _SBTransientOverlayPresentedEntity
+-(void)setDisableAutoUnlockAssertion:(id)arg1 {
+	%orig(arg1);
+
+	// during biometric authentication this is what is called to disable auto unlocking so we can disable actions
+	disableActions = arg1 != nil;
+}
+%end
 %end
 
 static inline void lockOrUnlockOrientation(UIInterfaceOrientation orientation) {
@@ -211,10 +222,14 @@ static NSString *currentApplicationIdentifier = nil;
 						currentSlidingViewController = _csController.coverSheetSlidingViewController;
 
 					if (currentSlidingViewController != nil) {
-						if ([_csController isVisible])
+						if ([_csController isVisible]) {
 							[currentSlidingViewController _dismissCoverSheetAnimated:YES withCompletion:nil];
-						else
-							[currentSlidingViewController _presentCoverSheetAnimated:YES withCompletion:nil];
+						} else {
+							if ([currentSlidingViewController respondsToSelector:@selector(_presentCoverSheetAnimated:withCompletion:)])
+								[currentSlidingViewController _presentCoverSheetAnimated:YES withCompletion:nil];
+							else if ([currentSlidingViewController respondsToSelector:@selector(_presentCoverSheetAnimated:forUserGesture:withCompletion:)])
+								[currentSlidingViewController _presentCoverSheetAnimated:YES forUserGesture:NO withCompletion:nil];
+						}
 					}
 				}
 			} else if (%c(SBNotificationCenterController) && [%c(SBNotificationCenterController) respondsToSelector:@selector(sharedInstance)]) {
@@ -470,4 +485,10 @@ static NSString *currentApplicationIdentifier = nil;
 %ctor {
 	preferencesChanged();
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)preferencesChanged, kSettingsChangedNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+
+	%init();
+
+	if (%c(_SBTransientOverlayPresentedEntity)) {
+		%init(iOS13plus);
+	}
 }
