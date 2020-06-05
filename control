@@ -1,7 +1,7 @@
 Package: com.dgh0st.dvirtualhome
 Name: DVirtualHome
 Depends: mobilesubstrate, preferenceloader
-Version: 0.0.12
+Version: 0.0.13
 Architecture: iphoneos-arm
 Description: My attempt at making virtual home iOS 10 compatible.
 Maintainer: DGh0st <deeppwnage@yahoo.com>
