@@ -1,4 +1,5 @@
 #include "DVirtualHome.h"
+#include <notify.h>
 
 static void preferencesChanged() {
 	CFPreferencesAppSynchronize((CFStringRef)kIdentifier);
@@ -44,6 +45,8 @@ static void hapticVibe() {
 // iOS 13+ doesn't currently support disable actions during lockscreen biometric authentication
 static BOOL disableActions = NO;
 static BOOL isLongPressGestureActive = NO;
+static int notify_token = 0;
+static BOOL disableActionsForScreenOff = NO;
 
 %hook SBDashBoardViewController
 -(void)biometricEventMonitor:(id)arg1 handleBiometricEvent:(NSUInteger)arg2 { // iOS 10 - 10.1
@@ -452,6 +455,17 @@ static NSString *currentApplicationIdentifier = nil;
 	}
 }
 
+-(BOOL)gestureRecognizerShouldBegin:(id)arg1 {
+	SBHomeHardwareButtonGestureRecognizerConfiguration *_configuration = [self gestureRecognizerConfiguration];
+	UIHBClickGestureRecognizer *_singleTapGestureRecognizer = _configuration.singleTapGestureRecognizer;
+	UILongPressGestureRecognizer *_longTapGestureRecognizer = _configuration.longTapGestureRecognizer;
+	UILongPressGestureRecognizer *_tapAndHoldTapGestureRecognizer = _configuration.tapAndHoldTapGestureRecognizer;
+	UILongPressGestureRecognizer *_vibrationGestureRecognizer = _configuration.vibrationGestureRecognizer;
+	if (disableActionsForScreenOff && (arg1 == _vibrationGestureRecognizer || arg1 == _singleTapGestureRecognizer || arg1 == _longTapGestureRecognizer || arg1 == _tapAndHoldTapGestureRecognizer))
+		return NO;
+	return %orig(arg1);
+}
+
 -(BOOL)gestureRecognizer:(id)arg1 shouldRecognizeSimultaneouslyWithGestureRecognizer:(id)arg2 {
 	SBHomeHardwareButtonGestureRecognizerConfiguration *_configuration = [self gestureRecognizerConfiguration];
 	UIHBClickGestureRecognizer *_singleTapGestureRecognizer = _configuration.singleTapGestureRecognizer;
@@ -480,6 +494,8 @@ static NSString *currentApplicationIdentifier = nil;
 
 %dtor {
 	CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kSettingsChangedNotification, NULL);
+
+	notify_cancel(notify_token);
 }
 
 %ctor {
@@ -491,4 +507,10 @@ static NSString *currentApplicationIdentifier = nil;
 	if (%c(_SBTransientOverlayPresentedEntity)) {
 		%init(iOS13plus);
 	}
+
+	notify_register_dispatch("com.apple.springboard.hasBlankedScreen", &notify_token, dispatch_get_main_queue(), ^(int token) {
+		uint64_t state = UINT64_MAX;
+		notify_get_state(token, &state);
+		disableActionsForScreenOff = (state != 0);
+	});
 }
