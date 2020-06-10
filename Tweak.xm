@@ -183,7 +183,7 @@ static NSString *currentApplicationIdentifier = nil;
 				presentationOptions.hideOtherWindowsDuringAppearance = NO;
 
 				SASRequestOptions *requestOptions = [[%c(SASRequestOptions) alloc] initWithRequestSource:1 uiPresentationIdentifier:@"com.apple.siri.Siriland"];
-				requestOptions.buttonDownTimestamp = requestOptions.timestamp;
+				requestOptions.useAutomaticEndpointing = YES;
 
 				AFApplicationInfo *applicationInfo = [[%c(AFApplicationInfo) alloc] initWithCoder:nil];
 				applicationInfo.pid = [NSProcessInfo processInfo].processIdentifier;

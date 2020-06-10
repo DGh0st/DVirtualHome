@@ -72,7 +72,7 @@ static NSInteger vibrationDuration = 30;
 
 @interface SASRequestOptions : NSObject
 @property (assign, nonatomic) CGFloat timestamp;
-@property (assign, nonatomic) CGFloat buttonDownTimestamp;
+@property (assign, nonatomic) BOOL useAutomaticEndpointing;
 @property (nonatomic, retain) NSArray *contextAppInfosForSiriViewController;
 -(id)initWithRequestSource:(NSInteger)arg1 uiPresentationIdentifier:(id)arg2;
 @end
