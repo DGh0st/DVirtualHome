@@ -50,6 +50,7 @@ static NSInteger vibrationDuration = 30;
 @interface SpringBoard : UIApplication
 @property (nonatomic, retain) NSString *lastApplicationIdentifier;
 @property (nonatomic, retain) NSString *currentApplicationIdentifier;
+-(void)_simulateHomeButtonPressWithCompletion:(id)arg1;
 -(void)_simulateHomeButtonPress;
 -(void)_simulateLockButtonPress;
 -(SBScreenshotManager *)screenshotManager;

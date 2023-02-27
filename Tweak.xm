@@ -147,7 +147,11 @@ static NSString *currentApplicationIdentifier = nil;
 		return; // do nothing since we are in middle of authentication
 
 	if (action == home || ![[%c(SBBacklightController) sharedInstance] screenIsOn]) {
-		[(SpringBoard *)[UIApplication sharedApplication] _simulateHomeButtonPress];
+		SpringBoard *_springboard = (SpringBoard *)[UIApplication sharedApplication];
+		if ([_springboard respondsToSelector:@selector(_simulateHomeButtonPress)])
+			[(SpringBoard *)[UIApplication sharedApplication] _simulateHomeButtonPress];
+		else if ([_springboard respondsToSelector:@selector(_simulateHomeButtonPressWithCompletion:)])
+			[(SpringBoard *)[UIApplication sharedApplication] _simulateHomeButtonPressWithCompletion:nil];
 	} else if (action == lock) {
 		[(SpringBoard *)[UIApplication sharedApplication] _simulateLockButtonPress];
 	} else if (action == switcher) {
@@ -184,8 +188,10 @@ static NSString *currentApplicationIdentifier = nil;
 
 				SASRequestOptions *requestOptions = [[%c(SASRequestOptions) alloc] initWithRequestSource:1 uiPresentationIdentifier:@"com.apple.siri.Siriland"];
 				requestOptions.useAutomaticEndpointing = YES;
-
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnonnull"
 				AFApplicationInfo *applicationInfo = [[%c(AFApplicationInfo) alloc] initWithCoder:nil];
+#pragma clang diagnostic pop
 				applicationInfo.pid = [NSProcessInfo processInfo].processIdentifier;
 				applicationInfo.identifier = [NSBundle mainBundle].bundleIdentifier;
 				requestOptions.contextAppInfosForSiriViewController = @[applicationInfo];
